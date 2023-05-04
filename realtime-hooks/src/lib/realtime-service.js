@@ -1,11 +1,7 @@
 import Pusher from "pusher"
 import { compile } from 'path-to-regexp';
-import { getCache } from 'directus/cache';
 
 export const CHANNEL_TABLE_NAME = "realtime_channels";
-const CHANNELS_CACHE_KEY = 'realtime-channel-list';
-const SCHEMA_CACHE_KEY = 'realtime-tables-schema';
-
 
 export default class RealtimeService {
     logger = null;
@@ -39,15 +35,9 @@ export default class RealtimeService {
 
     async getChannels() {
         try {
-            const { cache } = getCache();
-            const cachedChannels = await cache?.get(CHANNELS_CACHE_KEY);
-            if (cachedChannels) {
-                return cachedChannels;
-            }
             const channels = await this.context.database.from(CHANNEL_TABLE_NAME).where({
                 enabled: true,
             }).select("*");
-            cache?.set(CHANNELS_CACHE_KEY, channels);
             return channels;
         } catch (databaseError) {
             this.logger.error("Database Error on loadingChannels ", databaseError.message);
@@ -56,36 +46,20 @@ export default class RealtimeService {
     }
 
     registerActions(action) {
-        const { cache } = getCache();
         action("items.create", ({ payload, key, collection }) => {
-            if (collection === CHANNEL_TABLE_NAME) {
-                cache?.delete(CHANNELS_CACHE_KEY);
-            }
             this.onAction(collection, "create", { payload, key });
         });
         action("items.update", ({ payload, keys, collection }) => {
-            if (collection === CHANNEL_TABLE_NAME) {
-                cache?.delete(CHANNELS_CACHE_KEY);
-            }
             this.onAction(collection, "update", { payload, keys });
         });
         action("items.delete", ({ payload, collection }) => {
-            if (collection === CHANNEL_TABLE_NAME) {
-                cache?.delete(CHANNELS_CACHE_KEY);
-            }
             this.onAction(collection, "delete", payload);
         });
     }
 
     async getSchema() {
-        const { cache } = getCache();
-        const cachedSchema = await cache?.get(SCHEMA_CACHE_KEY);
-        if (cachedSchema) {
-            return cachedSchema;
-        }
         try {
             const schema = await this.context.getSchema();
-            cache?.set(SCHEMA_CACHE_KEY, schema);
             return schema;
         } catch (unexpectedError) {
             this.logger.error("Realtime Extension unable to get schema of collections");
