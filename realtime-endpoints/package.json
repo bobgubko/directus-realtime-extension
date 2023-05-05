@@ -10,7 +10,7 @@
 		"type": "endpoint",
 		"path": "../dist/endpoints/realtime/index.js",
 		"source": "src/index.js",
-		"host": "^9.4.3"
+		"host": "^10"
 	},
 	"scripts": {
 		"build": "directus-extension build"
